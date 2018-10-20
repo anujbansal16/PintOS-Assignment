@@ -87,6 +87,7 @@ static tid_t allocate_tid (void);
 void
 thread_init (void) 
 {
+
   ASSERT (intr_get_level () == INTR_OFF);
 
   lock_init (&tid_lock);
@@ -469,6 +470,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
+  sema_init (&t->timer_sema, 0);//initialize timer semaphore -Added by Anuj
+
   list_push_back (&all_list, &t->allelem);
 }
 
@@ -567,6 +571,8 @@ schedule (void)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
 }
+
+
 
 /* Returns a tid to use for a new thread. */
 static tid_t
