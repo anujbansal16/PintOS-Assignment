@@ -71,6 +71,16 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+
+bool prio_comp(const struct list_elem *a,const struct list_elem *b,void *aux) {
+
+  struct thread *ta = list_entry(a,struct thread,elem);
+  struct thread *tb = list_entry(b,struct thread,elem);
+  if(ta->priority > tb->priority) return true;
+  else return false;
+}
+
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -246,7 +256,8 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  // list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem, prio_comp, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -317,7 +328,8 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem, prio_comp, NULL);
+    // list_push_back (&ready_list, &cur->elem);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -345,6 +357,11 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+  if (!list_empty (&ready_list)){
+      if(new_priority < (list_entry(list_front(&ready_list),struct thread,elem)->priority))
+        thread_yield();
+  }
+
 }
 
 /* Returns the current thread's priority. */
